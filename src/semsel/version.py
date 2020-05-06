@@ -12,12 +12,12 @@ import attr
 
 from .utils import cmp
 
-MAJOR_PATTERN = r"(?P<major>0|[1-9]\d*)"
-MINOR_PATTERN = r"(?P<minor>0|[1-9]\d*)"
-PATCH_PATTERN = r"(?P<patch>0|[1-9]\d*)"
+MAJOR_PATTERN = r"(?P<major>0|[1-9][0-9]*)"
+MINOR_PATTERN = r"(?P<minor>0|[1-9][0-9]*)"
+PATCH_PATTERN = r"(?P<patch>0|[1-9][0-9]*)"
 PRERELEASE_PATTERN = (
-    r"(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)"
-    r"(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)"
+    r"(?P<prerelease>(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)"
+    r"(?:\.(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)"
 )
 BUILD_PATTERN = r"(?P<build>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*)"
 
@@ -38,7 +38,7 @@ VersionTuple_T = Tuple[int, int, int, Optional[str], Optional[str]]
 VersionDict_T = Dict[str, Union[int, Optional[str]]]
 
 
-@attr.s(cmp=False)
+@attr.s(eq=False, order=False)
 class PartialVersion:
 
     major: int = attr.ib()

@@ -8,11 +8,12 @@ from typing import List, Tuple, Union
 
 import attr
 from lark import Lark, Tree, Token, Transformer
+from lark.exceptions import VisitError
 from cached_property import cached_property
 
 from .version import PartialVersion
 from .selector import VersionRange, VersionSelector, VersionCondition, ConditionOperator
-from .exceptions import ParseFailure
+from .exceptions import ParseFailure, InvalidExpression
 
 GRAMMER = """
 WS: (" " | /\t/)
@@ -38,8 +39,8 @@ VERSION_ALPHANUMERIC: DIGIT | CHARACTER | HYPHEN
 MAJOR: VERSION_DIGIT
 MINOR: VERSION_DIGIT
 PATCH: VERSION_DIGIT
-PRERELEASE: (VERSION_DIGIT | DIGIT* VERSION_ALPHA VERSION_ALPHANUMERIC*) \
-    (DOT (VERSION_DIGIT | DIGIT* VERSION_ALPHA VERSION_ALPHANUMERIC*))*
+PRERELEASE: ((DIGIT* VERSION_ALPHA VERSION_ALPHANUMERIC*) | VERSION_DIGIT) \
+    (DOT ((DIGIT* VERSION_ALPHA VERSION_ALPHANUMERIC*) | VERSION_DIGIT))*
 BUILD: VERSION_ALPHANUMERIC+ (DOT VERSION_ALPHANUMERIC+)*
 
 version: MAJOR ("." MINOR ("." PATCH ("-" PRERELEASE)? ("+" BUILD)?)?)?
@@ -315,4 +316,10 @@ class SemselParser:
         :rtype: VersionSelector
         """
 
-        return self.transformer.transform(self.tokenize(content))
+        try:
+            return self.transformer.transform(self.tokenize(content))
+        except VisitError as exc:
+            if isinstance(exc.orig_exc, InvalidExpression):
+                raise exc.orig_exc
+
+            raise
