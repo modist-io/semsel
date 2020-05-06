@@ -2,8 +2,7 @@
 # Copyright (c) 2019 Stephen Bunn <stephen@bunn.io>
 # ISC License <https://choosealicense.com/licenses/isc>
 
-"""
-"""
+"""Contains version management constants and classes."""
 
 import re
 from typing import Any, Dict, List, Type, Tuple, Union, Optional
@@ -40,6 +39,7 @@ VersionDict_T = Dict[str, Union[int, Optional[str]]]
 
 @attr.s(eq=False, order=False)
 class PartialVersion:
+    """Describes a partial Semver version that can be compared with eachother."""
 
     major: int = attr.ib()
     minor: int = attr.ib(default=None)
@@ -50,6 +50,12 @@ class PartialVersion:
     _pattern = re.compile(PARTIAL_VERSION_PATTERN)
 
     def __str__(self) -> str:
+        """Produce a human readable string to describe the partial version.
+
+        :return: A human readable string
+        :rtype: str
+        """
+
         version = str(self.major)
         if self.minor is not None:
             version += f".{self.minor!s}"
@@ -63,31 +69,106 @@ class PartialVersion:
         return version
 
     def __eq__(self, other: Any) -> bool:
+        """Compare equality between versions.
+
+        :param Any other: The partial version to compare equality with
+        :return: True if equal, otherwise False
+        :rtype: bool
+        """
+
         return self.compare(other) == 0
 
     def __ne__(self, other: Any) -> bool:
+        """Compare inequality between versions.
+
+        :param Any other: The partial version to compare inequality with
+        :return: True if not equal, otherwise False
+        :rtype: bool
+        """
+
         return self.compare(other) != 0
 
     def __lt__(self, other: "PartialVersion") -> bool:
+        """Compare if a given version is less than the current version.
+
+        :param PartialVersion other: The partial version to compare against
+        :return: True if the given partial version is less than the current version,
+            otherwise False
+        :rtype: bool
+        """
+
         return self.compare(other) < 0
 
     def __le__(self, other: "PartialVersion") -> bool:
+        """Compare if a given version is less than or equal to the version.
+
+        :param PartialVersion other: The partial version to compare against
+        :return: True if the given partial version is less than or equal to the
+            current version, otherwise False
+        :rtype: bool
+        """
+
         return self.compare(other) <= 0
 
     def __gt__(self, other: "PartialVersion") -> bool:
+        """Compare if a given version is greather than the version.
+
+        :param PartialVersion other: The partial version to compare against
+        :return: True if the given partial version is greater than the current version,
+            otherwise False
+        :rtype: bool
+        """
+
         return self.compare(other) > 0
 
     def __ge__(self, other: "PartialVersion") -> bool:
+        """Compare if a given version is greater than or equal to the current version.
+
+        :param PartialVersion other: The partial version to compare against
+        :return: True if the given partial version is greater than or equal to the
+            current version, otherwise False
+        :rtype: bool
+        """
+
         return self.compare(other) >= 0
 
     def __major__(self, other: "PartialVersion") -> bool:
+        """Compare if a given version is within the major bounds of the current version.
+
+        :param PartialVersion other: The partial version to compare against
+        :return: True if the given partial version is within the major bouds of the
+            current version, otherwise False
+        :rtype: bool
+        """
+
         return other.major == self.major
 
     def __minor__(self, other: "PartialVersion") -> bool:
+        """Compare if a given version is within the minor bounds of the current version.
+
+        :param PartialVersion other: The partial version to compare against
+        :return: True if the given partial version is within the minor bounds of the
+            current version, otherwise False
+        :rtype: bool
+        """
+
         return other.major == self.major and (other.minor or 0) <= (self.minor or 0)
 
     @staticmethod
     def prerelease_compare(source: Optional[str], target: Optional[str]) -> int:
+        """Compare a prerelease string against another prerelease string.
+
+        .. note:: This is required as the Semver spec notes that the prerelease has a
+            custom method of ordering and comparison that needs to be applied. This was
+            kept as a static method for later external use.
+
+        :param Optional[str] source: The source prerelease text to compare
+        :param Optional[str] target: The target prerelease text to compare
+        :return: -1 if the source is less than the target, 0 if the source is equal to
+            the target, 1 if the source is greater than the target
+        :rtype: int
+        """
+
         def cast_fragment(fragment_value: str) -> Union[int, str]:
             return (
                 int(fragment_value)
@@ -124,10 +205,29 @@ class PartialVersion:
 
     @classmethod
     def from_dict(cls, version_dict: VersionDict_T) -> "PartialVersion":
+        """Build a new partial version from a dict of keyword arguments.
+
+        .. important:: This is directly equivalent to doing
+            ``PartialVersion(**version_dict)`` but was left in to maintain consistency
+            with previous libraries that did not use keyword arguments for the class'
+            inputs.
+
+        :return: A new PartialVersion instance
+        :rtype: PartialVersion
+        """
+
         return cls(**version_dict)  # type: ignore
 
     @classmethod
     def from_string(cls, version: str) -> "PartialVersion":
+        """Build a new partial version from a string.
+
+        :param str version: The version string to build a partial version instance from
+        :raises ValueError: If the given string is not a valid partial semantic version
+        :return: A new PartialVersion instance
+        :rtype: PartialVersion
+        """
+
         match = cls._pattern.fullmatch(version)
         if not match:
             raise ValueError(f"{version!r} is not a valid partial semantic version")
@@ -145,6 +245,16 @@ class PartialVersion:
 
     @classmethod
     def from_tuple(cls, version_tuple: VersionTuple_T) -> "PartialVersion":
+        """Build a new partial version from a tuple of arguments.
+
+        .. important:: This is direclty equivalent to doing
+            ``PartialVersion(*version_tuple)`` but was left to maintain consistency with
+            previous libraries that did not use arguments for the class' inputs.
+
+        :return: A new PartialVersion instance
+        :rtype: PartialVersion
+        """
+
         major, minor, patch = version_tuple[:3]
 
         # TODO: refactor these magic numbers out
@@ -163,6 +273,16 @@ class PartialVersion:
     def compare(
         self, version: Union[str, VersionDict_T, VersionTuple_T, "PartialVersion"]
     ) -> int:
+        """Compare the current version data against another version.
+
+        :param Union[str, VersionDict_T, VersionTuple_T, PartialVersion] version:
+            Version data or :class:`~PartialVersion` instance to compare the current
+            version against
+        :raises TypeError: If the given version parameter can not be handled
+        :return: -1 if less than, 0 if equal, 1 if greater than
+        :rtype: int
+        """
+
         other: "PartialVersion"
         cls: Type["PartialVersion"] = type(self)
         if isinstance(version, str):
@@ -172,12 +292,10 @@ class PartialVersion:
         elif isinstance(version, (tuple, list,)):
             other = cls.from_tuple(version)
 
-        if not isinstance(version, cls):
+        if not isinstance(other, cls):
             raise TypeError(
                 f"Expected str or {cls.__name__!s} instance, but got {type(version)!s}"
             )
-        else:
-            other = version
 
         source = self.to_tuple()[:3]
         target = other.to_tuple()[:3]
@@ -201,6 +319,15 @@ class PartialVersion:
         return prerelease_comparison
 
     def to_tuple(self) -> VersionTuple_T:
+        """Produce a tuple of version data from the current partial version data.
+
+        ..note:: The is the inverse of the available :meth:`~PartialVersion.from_tuple`
+            method.
+
+        :return: A tuple of version data
+        :rtype: VersionTuple_T
+        """
+
         return (
             self.major,
             self.minor or 0,
@@ -210,12 +337,28 @@ class PartialVersion:
         )
 
     def to_dict(self) -> VersionDict_T:
+        """Produce a dict of version data from the current partial version data.
+
+        ..note:: This is the inverse of the available :meth:`~PartialVersion.from_dict`
+            method.
+
+        :return: A dict of version data
+        :rtype: VersionDict_T
+        """
+
         return attr.asdict(self)
 
     def to_semver(self) -> str:
+        """Produce a valid Semver string from the current partial version data.
+
+        :return: A valid Semver string
+        :rtype: str
+        """
+
         semver = f"{self.major!s}.{self.minor or 0!s}.{self.patch or 0!s}"
         if self.prerelease:
             semver += f"-{self.prerelease!s}"
         if self.build:
             semver += f"+{self.build!s}"
+
         return semver
