@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Type, Tuple, Union, Optional
 
 import attr
 
+from .utils import cmp
+
 MAJOR_PATTERN = r"(?P<major>0|[1-9]\d*)"
 MINOR_PATTERN = r"(?P<minor>0|[1-9]\d*)"
 PATCH_PATTERN = r"(?P<patch>0|[1-9]\d*)"
@@ -49,13 +51,13 @@ class PartialVersion:
 
     def __str__(self) -> str:
         version = str(self.major)
-        if self.minor:
+        if self.minor is not None:
             version += f".{self.minor!s}"
-        if self.patch:
+        if self.patch is not None:
             version += f".{self.patch!s}"
-        if self.prerelease:
+        if self.prerelease is not None:
             version += f"-{self.prerelease!s}"
-        if self.build:
+        if self.build is not None:
             version += f"+{self.build!s}"
 
         return version
@@ -85,10 +87,6 @@ class PartialVersion:
         return other.major == self.major and (other.minor or 0) <= (self.minor or 0)
 
     @staticmethod
-    def __cmp(source: Any, target: Any) -> int:
-        return (source > target) - (source < target)
-
-    @staticmethod
     def prerelease_compare(source: Optional[str], target: Optional[str]) -> int:
         def cast_fragment(fragment_value: str) -> Union[int, str]:
             return (
@@ -104,13 +102,13 @@ class PartialVersion:
             source: Optional[Union[int, str]], target: Optional[Union[int, str]]
         ) -> int:
             if isinstance(source, int) and isinstance(target, int):
-                return PartialVersion.__cmp(source, target)
+                return cmp(source, target)
             elif isinstance(source, int):
                 return -1
             elif isinstance(target, int):
                 return 1
             else:
-                return PartialVersion.__cmp(source, target)
+                return cmp(source, target)
 
         source, target = source or "", target or ""
         source_fragments, target_fragments = (
@@ -122,7 +120,7 @@ class PartialVersion:
             if part_comparision != 0:
                 return part_comparision
         else:
-            return PartialVersion.__cmp(len(source), len(target))
+            return cmp(len(source), len(target))
 
     @classmethod
     def from_dict(cls, version_dict: VersionDict_T) -> "PartialVersion":
@@ -163,7 +161,7 @@ class PartialVersion:
         )
 
     def compare(
-        self, version: Union[str, VersionDict_T, VersionTuple_T, "PartialVersion"],
+        self, version: Union[str, VersionDict_T, VersionTuple_T, "PartialVersion"]
     ) -> int:
         other: "PartialVersion"
         cls: Type["PartialVersion"] = type(self)
@@ -184,7 +182,7 @@ class PartialVersion:
         source = self.to_tuple()[:3]
         target = other.to_tuple()[:3]
 
-        comparision = PartialVersion.__cmp(source, target)
+        comparision = cmp(source, target)
         if comparision:
             return comparision
 

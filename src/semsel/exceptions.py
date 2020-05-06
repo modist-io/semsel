@@ -4,14 +4,29 @@
 
 """Contains custom exceptions and errors."""
 
+from typing import Optional
+
 
 class SemselException(Exception):
     """Module-wide exception namespace."""
 
-    pass
+    def __init__(self, message: str):
+        """Initialize the exception instance.
+
+        :param str message: The user-intended exception message
+        """
+
+        super().__init__(message)
+        self.message = message
 
 
 class ParseFailure(SemselException):
     """Raised during BNF-grammer parsing / transformation failures."""
+
+    pass
+
+
+class InvalidExpression(SemselException):
+    """Raised when evaluation of an expression is shown to have conflicts."""
 
     pass
