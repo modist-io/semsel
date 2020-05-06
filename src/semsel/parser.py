@@ -8,8 +8,8 @@ from typing import List, Tuple, Union
 
 import attr
 from lark import Lark, Tree, Token, Transformer
-from lark.exceptions import VisitError
 from cached_property import cached_property
+from lark.exceptions import VisitError
 
 from .version import PartialVersion
 from .selector import VersionRange, VersionSelector, VersionCondition, ConditionOperator
