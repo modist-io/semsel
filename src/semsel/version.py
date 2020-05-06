@@ -283,18 +283,19 @@ class PartialVersion:
         :rtype: int
         """
 
-        other: "PartialVersion"
-        cls: Type["PartialVersion"] = type(self)
-        if isinstance(version, str):
-            other = cls.from_string(version)
+        other: Optional["PartialVersion"] = None
+        if isinstance(version, type(self)):
+            other = version
+        elif isinstance(version, str):
+            other = self.from_string(version)
         elif isinstance(version, dict):
-            other = cls.from_dict(version)
+            other = self.from_dict(version)
         elif isinstance(version, (tuple, list,)):
-            other = cls.from_tuple(version)
-
-        if not isinstance(other, cls):
+            other = self.from_tuple(version)
+        else:
             raise TypeError(
-                f"Expected str or {cls.__name__!s} instance, but got {type(version)!s}"
+                f"Expected str or {self.__class__.__qualname__!s} instance, "
+                f"but got {type(version)!s}"
             )
 
         source = self.to_tuple()[:3]
