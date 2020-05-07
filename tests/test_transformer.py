@@ -52,6 +52,11 @@ from .strategies import (
     )
 )
 def test_casts_version_fragment_tokens(tree: Tree):
+    """
+    Ensures the transformer casts version fragment tokens such as MAJOR, MINOR, and
+    PATCH to integers in-place in the value of the token.
+    """
+
     assert all(isinstance(_.value, str) for _ in tree.children)
 
     transformed: Tree = SemselTransformer(visit_tokens=True).transform(tree)
@@ -70,6 +75,10 @@ def test_casts_version_fragment_tokens(tree: Tree):
     )
 )
 def test_transforms_operator_to_ConditionOperator(tree: Tree):
+    """
+    Ensures the transfomer builds ``ConditionOperator`` instances for OPERATOR tokens.
+    """
+
     assert all(isinstance(_.value, str) for _ in tree.children)
 
     transformed: Tree = SemselTransformer(visit_tokens=True).transform(tree)
@@ -78,6 +87,10 @@ def test_transforms_operator_to_ConditionOperator(tree: Tree):
 
 @given(lark_version_tree())
 def test_transforms_version_to_PartialVersion(version_tree: Tree):
+    """
+    Ensures the transformer builds ``PartialVersion`` instances for version trees.
+    """
+
     assert isinstance(version_tree, Tree)
     transformed: PartialVersion = SemselTransformer(visit_tokens=True).transform(
         version_tree
@@ -100,6 +113,11 @@ def test_transforms_version_condition_to_VersionCondition(
     version: PartialVersion,
     optional_minor: int,
 ):
+    """
+    Ensures the transformer builds ``VersionCondition`` instances for default
+    ``version_condition`` trees.
+    """
+
     if operator == ConditionOperator.MINOR and version.minor is None:
         version.minor = optional_minor
     tree.children = [operator, version]
@@ -116,6 +134,11 @@ def test_transforms_version_condition_to_VersionCondition(
     )
 )
 def test_transforms_partial_version_condition_to_VersionCondition(tree: Tree):
+    """
+    Ensures the transformer builds ``VresionCondition`` instances for
+    ``version_condition`` trees only containing a single ``PartialVersion`` instance.
+    """
+
     transformed: VersionCondition = SemselTransformer(visit_tokens=True).transform(tree)
     assert isinstance(transformed, VersionCondition)
     assert transformed.operator == ConditionOperator.EQ
@@ -131,6 +154,11 @@ def test_transforms_partial_version_condition_to_VersionCondition(tree: Tree):
 def test_fails_to_parse_partial_version_condition_with_invalid_partial_version(
     tree: Tree,
 ):
+    """
+    Ensures the transformer raises the appropriate error when trying to transform a
+    ``version_condition`` tree with no ``PartialVersion`` to extract.
+    """
+
     with pytest.raises(VisitError) as exc:
         SemselTransformer(visit_tokens=True).transform(tree)
 
@@ -151,6 +179,11 @@ def test_fails_to_parse_partial_version_condition_with_invalid_partial_version(
 def test_fails_to_parse_version_condition_with_invalid_operator(
     tree: Tree, invalid_operator: Token, version: PartialVersion
 ):
+    """
+    Ensures the transformer raises the appropriate error when trying to transform a
+    ``version_condition`` tree with an invalid ``ConditionOperator``.
+    """
+
     tree.children = [invalid_operator, version]
     with pytest.raises(VisitError) as exc:
         SemselTransformer(visit_tokens=True).transform(tree)
@@ -172,6 +205,11 @@ def test_fails_to_parse_version_condition_with_invalid_operator(
 def test_fails_to_parse_version_condition_with_invalid_partial_version(
     tree: Tree, operator: ConditionOperator, invalid_version: Token
 ):
+    """
+    Ensures the transformer raises the appropriate error when trying to transform a
+    ``version_condition`` tree with an invalid ``PartialVersion``.
+    """
+
     tree.children = [operator, invalid_version]
     with pytest.raises(VisitError) as exc:
         SemselTransformer(visit_tokens=True).transform(tree)
@@ -189,6 +227,11 @@ def test_fails_to_parse_version_condition_with_invalid_partial_version(
     )
 )
 def test_fails_to_parse_version_condition_with_too_many_tokens(tree: Tree):
+    """
+    Ensures the transformer raises the appropriate error when trying to transform a
+    ``version_condition`` tree with too many tokens.
+    """
+
     with pytest.raises(VisitError) as exc:
         SemselTransformer(visit_tokens=True).transform(tree)
 
@@ -209,6 +252,10 @@ def test_fails_to_parse_version_condition_with_too_many_tokens(tree: Tree):
 def test_transforms_version_range_to_VersionRange(
     tree: Tree, start_version: PartialVersion, end_version: PartialVersion
 ):
+    """
+    Ensures the transformer builds ``VersionRange`` instances for ``version_range`` trees.
+    """
+
     tree.children = [start_version, end_version]
 
     transformed: VersionRange = SemselTransformer(visit_tokens=True).transform(tree)
@@ -224,6 +271,11 @@ def test_transforms_version_range_to_VersionRange(
     )
 )
 def test_fails_to_parse_version_range_with_too_few_tokens(tree: Tree):
+    """
+    Ensures the transformer raises the appropriate error when trying to transform a
+    ``version_range`` tree with not enough tokens.
+    """
+
     with pytest.raises(VisitError) as exc:
         SemselTransformer(visit_tokens=True).transform(tree)
 
@@ -235,6 +287,11 @@ def test_fails_to_parse_version_range_with_too_few_tokens(tree: Tree):
 
 @given(lark_tree(data_strategy=just("version_clause")))
 def test_transforms_version_clause_to_its_children(tree: Tree):
+    """
+    Ensures the transformer builds the appropriate list of children elements when
+    transforming a ``version_clause`` tree.
+    """
+
     assert SemselTransformer(visit_tokens=True).transform(tree) == tree.children
 
 
@@ -247,5 +304,9 @@ def test_transforms_version_clause_to_its_children(tree: Tree):
     )
 )
 def test_transforms_version_selector_to_VersionSelector(tree: Tree):
+    """
+    Ensures the transformer builds ``VersionSelector`` instances for ``selector`` trees.
+    """
+
     transformed: VersionSelector = SemselTransformer(visit_tokens=True).transform(tree)
     assert isinstance(transformed, VersionSelector)
