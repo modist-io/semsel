@@ -2,9 +2,9 @@
 # Copyright (c) 2019 Stephen Bunn <stephen@bunn.io>
 # ISC License <https://choosealicense.com/licenses/isc>
 
-"""Contains Semver selector parsers, transformers, and grammers."""
+"""Contains Semver selector parsers, transformers, and grammars."""
 
-from typing import List, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 import attr
 from lark import Lark, Tree, Token, Transformer
@@ -15,7 +15,7 @@ from .version import PartialVersion
 from .selector import VersionRange, VersionSelector, VersionCondition, ConditionOperator
 from .exceptions import ParseFailure, InvalidExpression
 
-GRAMMER = """
+GRAMMAR = """
 WS: (" " | /\t/)
 
 OP_EQ: "="
@@ -62,7 +62,7 @@ class SemselTransformer(Transformer):
     be used for evaluation.
 
     This transformer should only really be applied to tokenized trees from the provided
-    grammer in order to avoid breakages. This transfomer is automatically included and
+    grammar in order to avoid breakages. This transfomer is automatically included and
     used during calls to :meth:`~.SemselParser.parse`. To use this transformer outside
     of the parser usage, you need to have a tree that needs to be transformed.
     Assuming you have a Lark produced :class:`lark.Tree` structure, you can use this
@@ -248,7 +248,20 @@ class SemselTransformer(Transformer):
         :rtype: VersionSelector
         """
 
-        return VersionSelector(clauses=tokens)
+        return VersionSelector(clauses=tokens, validate=self.__validate)
+
+    def transform(self, tree: Tree, validate: bool = True) -> Any:
+        """Transform the given tree to a :class:`~.selector.VersionSelector`.
+
+        :param Tree tree: The ``selector`` tree to transform
+        :param bool validate: Whether validation should be performed on the built
+            version selector, optional, defaults to True
+        :return: The result of the transformed tree
+        :rtype: Any
+        """
+
+        self.__validate = validate
+        return super().transform(tree)
 
 
 @attr.s
@@ -258,7 +271,7 @@ class SemselParser:
     The goal of this parser is to make the construction of
     :class:`~.selector.VersionSelector` instances simple. Since handling the Semver
     selector structure is difficult to do with raw REGEX patterns, this parser
-    implements a simple BNF-grammer for parsing / validating a given Semver selector
+    implements a simple BNF-grammar for parsing / validating a given Semver selector
     expression.
 
     Through this parser you can do two things (*mainly*). First off you can simply
@@ -282,14 +295,14 @@ class SemselParser:
         >2.3.4 <2.4 || 2.3.9
     """
 
-    grammer: str = attr.ib(default=GRAMMER)
+    grammar: str = attr.ib(default=GRAMMAR)
     debug: bool = attr.ib(default=False)
 
     @cached_property
     def parser(self) -> Lark:
         """:class:`lark.Lark` parser instance for string tokenization."""
 
-        return Lark(self.grammer, debug=self.debug)
+        return Lark(self.grammar, debug=self.debug)
 
     @cached_property
     def transformer(self) -> Transformer:
@@ -298,7 +311,7 @@ class SemselParser:
         return SemselTransformer(visit_tokens=True)
 
     def tokenize(self, content: str) -> Tree:
-        """Tokenize a given Semver selector string according to the provieded grammer.
+        """Tokenize a given Semver selector string according to the provided grammar.
 
         :param str content: The selector string to tokenize
         :return: A token :class:`lark.Tree`
@@ -307,17 +320,18 @@ class SemselParser:
 
         return self.parser.parse(content.strip())
 
-    def parse(self, content: str) -> VersionSelector:
+    def parse(self, content: str, validate: bool = True) -> VersionSelector:
         """Parse a given Semver selector string to the matching selector instance.
 
         :param str content: The selector string to parse
+        :param bool validate: Whether to validate the parsed expression
         :return: The matching :class:`~.selector.VresionSelector` instance for the \
             provided selector string
         :rtype: VersionSelector
         """
 
         try:
-            return self.transformer.transform(self.tokenize(content))
+            return self.transformer.transform(self.tokenize(content), validate=validate)
         except VisitError as exc:
             if isinstance(exc.orig_exc, (ParseFailure, InvalidExpression,)):
                 raise exc.orig_exc

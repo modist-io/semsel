@@ -194,7 +194,7 @@ def version_selector_clause(
     """Composite strategy for building a version selector clause."""
 
     return draw(
-        lists(one_of(version_condition(), version_range()), min_size=1)
+        lists(one_of(version_condition(), version_range()), min_size=1, max_size=3)
         if not selector_clause_strategy
         else selector_clause_strategy
     )
@@ -211,7 +211,7 @@ def version_selector(
 
     return VersionSelector(
         clauses=draw(
-            lists(version_selector_clause(), min_size=1)
+            lists(version_selector_clause(), min_size=1, max_size=3)
             if not selector_clause_strategy
             else selector_clause_strategy
         ),

@@ -28,7 +28,7 @@ class ConditionOperator(Enum):
     MINOR = "~"
 
 
-@attr.s(eq=False, order=False)
+@attr.s(order=False)
 class VersionCondition:
     """Describes a constrained version statement for a single version.
 
@@ -270,7 +270,7 @@ class VersionCondition:
         )
 
 
-@attr.s(eq=False, order=False)
+@attr.s(order=False)
 class VersionRange:
     """Describes a version set constrained by a range of versions.
 
@@ -380,20 +380,25 @@ class VersionSelector:
     validate: bool = attr.ib(default=True)
 
     def __attrs_post_init__(self):
-        """Handle clause validation after class initialization.
+        """Handle clause validation after class initialization."""
+
+        if self.validate:
+            self._validate()
+
+    def _validate(self):
+        """Validate the current selector's clauses.
 
         :raises InvalidExpression: When an clause expression is found to conflict with
             another expression in the selector statement
         """
 
-        if self.validate:
-            for clause in self.clauses:
-                for source, target in combinations(clause, 2):
-                    if not source.match(target):
-                        raise InvalidExpression(
-                            f"Expression {source!s} conflicts with expression "
-                            f"{target!s} in clause {self._format_clause(clause)!r}"
-                        )
+        for clause in self.clauses:
+            for source, target in combinations(clause, 2):
+                if not source.match(target):
+                    raise InvalidExpression(
+                        f"Expression {source!s} conflicts with expression "
+                        f"{target!s} in clause {self._format_clause(clause)!r}"
+                    )
 
     def _format_clause(
         self, clause: List[Union[VersionCondition, VersionRange]]

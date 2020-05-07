@@ -21,7 +21,7 @@ class SemselException(Exception):
 
 
 class ParseFailure(SemselException):
-    """Raised during BNF-grammer parsing / transformation failures."""
+    """Raised during BNF-grammar parsing / transformation failures."""
 
     pass
 

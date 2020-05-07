@@ -2,8 +2,7 @@
 # Copyright (c) 2019 Stephen Bunn <stephen@bunn.io>
 # ISC License <https://choosealicense.com/licenses/isc>
 
-"""
-"""
+"""Contains unit tests for the SemselTransformer transformer."""
 
 import pytest
 from lark import Tree, Token
