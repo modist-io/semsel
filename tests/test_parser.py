@@ -20,12 +20,21 @@ from .strategies import version_selector
 
 
 def test_defaults_to_included_grammar():
+    """
+    Ensures the default instance of the ``SemselParser`` uses the appropriate grammar.
+    """
+
     parser = SemselParser()
     assert parser.grammar == GRAMMAR
     assert isinstance(parser.parser, Lark)
 
 
 def test_default_transfomer_visits_tokens():
+    """
+    Ensures the default instance of the ``SemselParser`` uses the appropraite
+    tokenized tree transformer.
+    """
+
     parser = SemselParser()
     assert isinstance(parser.transformer, SemselTransformer)
     assert parser.transformer.__visit_tokens__
@@ -33,6 +42,10 @@ def test_default_transfomer_visits_tokens():
 
 @given(version_selector())
 def test_tokenize_strips_surrounding_whitespace(version_selector: VersionSelector):
+    """
+    Ensures the tokenization of a string first strips out surrounding whitespace.
+    """
+
     with mock.patch.object(Lark, "parse") as mocked_parse:
         parser = SemselParser().tokenize(f" {version_selector!s}\t")
         mocked_parse.assert_called_once_with(str(version_selector))
@@ -40,6 +53,11 @@ def test_tokenize_strips_surrounding_whitespace(version_selector: VersionSelecto
 
 @given(version_selector())
 def test_tokenize_produces_version_selector_tree(version_selector: VersionSelector):
+    """
+    Ensures the tokenization of a version selector string produces the appropriate
+    ``selector`` tree for further parsing.
+    """
+
     parser = SemselParser()
     selector_tree = parser.tokenize(str(version_selector))
     assert isinstance(selector_tree, Tree)
@@ -48,6 +66,11 @@ def test_tokenize_produces_version_selector_tree(version_selector: VersionSelect
 
 @given(version_selector())
 def test_parse_produces_VersionSelector(version_selector: VersionSelector):
+    """
+    Ensures the parsing of a version selector string produces an equivalent
+    ``VersionSelector`` instance.
+    """
+
     parser = SemselParser()
     parsed = parser.parse(str(version_selector), validate=False)
     assert parsed == version_selector
@@ -57,6 +80,12 @@ def test_parse_produces_VersionSelector(version_selector: VersionSelector):
 def test_parse_VisitError_raises_original_exception(
     version_selector: VersionSelector, handled_exception
 ):
+    """
+    Ensures that custom errors such as ``ParseFailure`` and ``InvalidExpression`` are
+    re-raised as the root exception from containing ``VisitErrors`` when applying the
+    ``SemselTransformer``.
+    """
+
     with mock.patch.object(SemselTransformer, "transform") as mocked_transform:
         mocked_transform.side_effect = VisitError(
             "test", Tree("test", []), handled_exception("test")
@@ -70,6 +99,11 @@ def test_parse_VisitError_raises_original_exception(
 
 @given(version_selector())
 def test_parse_VisitError_raises_VisitError(version_selector: VersionSelector):
+    """
+    Ensures that unhandled errors are raised nested behind the lark ``VisitError`` when
+    applying the ``SemselTransformer``.
+    """
+
     with mock.patch.object(SemselTransformer, "transform") as mocked_transform:
         mocked_transform.side_effect = VisitError(
             "test", Tree("test", []), ValueError("test")
