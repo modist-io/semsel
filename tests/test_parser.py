@@ -9,7 +9,8 @@ from unittest import mock
 import pytest
 from lark import Lark, Tree
 from hypothesis import given
-from lark.exceptions import VisitError
+from lark.grammar import Terminal
+from lark.exceptions import VisitError, UnexpectedEOF, UnexpectedCharacters
 from hypothesis.strategies import text, sampled_from
 
 from semsel.parser import GRAMMAR, SemselParser, SemselTransformer
@@ -109,5 +110,37 @@ def test_parse_VisitError_raises_VisitError(version_selector: VersionSelector):
             "test", Tree("test", []), ValueError("test")
         )
 
-        with pytest.raises(VisitError) as exc:
+        with pytest.raises(VisitError):
+            SemselParser().parse(str(version_selector), validate=False)
+
+
+@given(version_selector())
+def test_parse_UnexpectedCharacters_raises_ParseFailure(
+    version_selector: VersionSelector,
+):
+    """
+    Ensures that ``UnexpectedCharacters`` exceptions are re-raised as ``ParseFailure``
+    exceptions to avoid having to make users depend on lark exceptions.
+    """
+
+    with mock.patch.object(SemselTransformer, "transform") as mocked_transform:
+        mocked_transform.side_effect = UnexpectedCharacters(
+            "test", 0, 0, 0, allowed=["test"]
+        )
+
+        with pytest.raises(ParseFailure):
+            SemselParser().parse(str(version_selector), validate=False)
+
+
+@given(version_selector())
+def test_parse_UnexpectedEOF_raises_ParseFailure(version_selector: VersionSelector):
+    """
+    Ensures that ``UnexpectedEOF`` exceptions are re-raised as ``ParseFailure``
+    exceptions to avoid having to make users depend on lark exceptions.
+    """
+
+    with mock.patch.object(SemselTransformer, "transform") as mocked_transform:
+        mocked_transform.side_effect = UnexpectedEOF([Terminal("test")])
+
+        with pytest.raises(ParseFailure):
             SemselParser().parse(str(version_selector), validate=False)

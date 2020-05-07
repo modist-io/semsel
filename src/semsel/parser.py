@@ -9,7 +9,7 @@ from typing import Any, List, Tuple, Union
 import attr
 from lark import Lark, Tree, Token, Transformer
 from cached_property import cached_property
-from lark.exceptions import VisitError
+from lark.exceptions import VisitError, UnexpectedEOF, UnexpectedCharacters
 
 from .version import PartialVersion
 from .selector import VersionRange, VersionSelector, VersionCondition, ConditionOperator
@@ -332,6 +332,19 @@ class SemselParser:
 
         try:
             return self.transformer.transform(self.tokenize(content), validate=validate)
+        except UnexpectedCharacters as exc:
+            raise ParseFailure(
+                f"Parsing expression {content!r} encountered unexpected characters. "
+                f"Expected to see one of {set(exc.allowed)!r} at line {exc.line!s} "
+                f"column {exc.column!s}"
+            )
+        except UnexpectedEOF as exc:
+            print(exc.expected[0])
+            raise ParseFailure(
+                f"Parsing expression {content!r} unexpectedly ended. "
+                f"Expected to see one of {set(_.name for _ in exc.expected)!r} next, "
+                "but reached the end of the expression"
+            )
         except VisitError as exc:
             if isinstance(exc.orig_exc, (ParseFailure, InvalidExpression,)):
                 raise exc.orig_exc
