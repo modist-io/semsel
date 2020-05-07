@@ -12,6 +12,8 @@ from lark.exceptions import VisitError
 from hypothesis.strategies import (
     just,
     lists,
+    one_of,
+    tuples,
     nothing,
     integers,
     from_regex,
@@ -20,14 +22,21 @@ from hypothesis.strategies import (
 
 from semsel.parser import SemselTransformer
 from semsel.version import PartialVersion
-from semsel.selector import VersionCondition, ConditionOperator
+from semsel.selector import (
+    VersionRange,
+    VersionSelector,
+    VersionCondition,
+    ConditionOperator,
+)
 from semsel.exceptions import ParseFailure
 
 from .strategies import (
     lark_tree,
     lark_token,
+    version_range,
     partial_version,
     lark_version_tree,
+    version_condition,
     condition_operator,
 )
 
@@ -188,3 +197,56 @@ def test_fails_to_parse_version_condition_with_too_many_tokens(tree: Tree):
     _, err, _ = exc._excinfo
     assert isinstance(err, VisitError)
     assert isinstance(err.orig_exc, ParseFailure)
+
+
+@given(
+    lark_tree(
+        data_strategy=just("version_range"),
+        children_strategy=lists(nothing(), min_size=0, max_size=0),
+    ),
+    partial_version(major_strategy=integers(min_value=0, max_value=9)),
+    partial_version(major_strategy=integers(min_value=10)),
+)
+def test_transforms_version_range_to_VersionRange(
+    tree: Tree, start_version: PartialVersion, end_version: PartialVersion
+):
+    tree.children = [start_version, end_version]
+
+    transformed: VersionRange = SemselTransformer(visit_tokens=True).transform(tree)
+    assert isinstance(transformed, VersionRange)
+    assert transformed.version_start == start_version
+    assert transformed.version_end == end_version
+
+
+@given(
+    lark_tree(
+        data_strategy=just("version_range"),
+        children_strategy=lists(partial_version(), max_size=1),
+    )
+)
+def test_fails_to_parse_version_range_with_too_few_tokens(tree: Tree):
+    with pytest.raises(VisitError) as exc:
+        SemselTransformer(visit_tokens=True).transform(tree)
+
+    assert "failed to extract expected start and end versions" in str(exc.value)
+    _, err, _ = exc._excinfo
+    assert isinstance(err, VisitError)
+    assert isinstance(err.orig_exc, ParseFailure)
+
+
+@given(lark_tree(data_strategy=just("version_clause")))
+def test_transforms_version_clause_to_its_children(tree: Tree):
+    assert SemselTransformer(visit_tokens=True).transform(tree) == tree.children
+
+
+@given(
+    lark_tree(
+        data_strategy=just("selector"),
+        children_strategy=lists(
+            tuples(one_of(version_condition(), version_range())), min_size=1
+        ),
+    )
+)
+def test_transforms_version_selector_to_VersionSelector(tree: Tree):
+    transformed: VersionSelector = SemselTransformer(visit_tokens=True).transform(tree)
+    assert isinstance(transformed, VersionSelector)
