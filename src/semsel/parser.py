@@ -198,7 +198,7 @@ class SemselTransformer(Transformer):
 
         else:
             raise ParseFailure(
-                f"failed to extract expected operator and veresion from {tokens!r}"
+                f"failed to extract expected operator and version from {tokens!r}"
             )
 
     def version_range(self, tokens: List[PartialVersion]) -> VersionRange:
@@ -319,7 +319,7 @@ class SemselParser:
         try:
             return self.transformer.transform(self.tokenize(content))
         except VisitError as exc:
-            if isinstance(exc.orig_exc, InvalidExpression):
+            if isinstance(exc.orig_exc, (ParseFailure, InvalidExpression,)):
                 raise exc.orig_exc
 
             raise
